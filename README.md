@@ -1,0 +1,2 @@
+# easylog
+C++ logger
