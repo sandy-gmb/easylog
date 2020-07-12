@@ -24,11 +24,10 @@
 #ifndef EASYLOG_H_
 #define EASYLOG_H_
 
-#pragma once
+#include <string>
+#include <functional>
 
-#ifndef EASY_LOG_LINE_BUFF_SIZE
-#  define EASY_LOG_LINE_BUFF_SIZE		1024            /** 一行的最大缓冲 */
-#endif
+#pragma once
 
 #ifdef WIN32
 #else
@@ -67,11 +66,16 @@
 
 #include "logger_global.h"
 
+/** 日志级别定义*/
+enum LOG_LEVEL { LOG_TRACE = 0, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_ALARM, LOG_FATAL };
+LOGGER_API inline std::string LogEnumToString(LOG_LEVEL l);
+
+typedef std::function< void(const std::string&)> TypeLogNormalCallBack;
+typedef std::function< void(const std::string& , LOG_LEVEL, const std::string&)> TypeLogSpecCallBack;
+
 class LOGGER_API EasyLog
 {
 public:
-    /** 日志级别*/
-	enum LOG_LEVEL { LOG_TRACE = 0, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_ALARM,  LOG_FATAL };
 
 public:
     /** 单例模式 */
@@ -84,7 +88,7 @@ public:
 
 	void WriteLog(std::string logText, LOG_LEVEL level = LOG_ERROR);
 
-    /** 设置函数 */
+    /** 设置函数 静态函数 用于统一设置相关配置 */
 
     /**
     * @brief  :  SetLogDir 设置日志目录
@@ -102,7 +106,7 @@ public:
     * @return :  void
     * @retval :
     */
-    void SetPrint2StdOut(bool isprint);
+    static void SetPrint2StdOut(bool isprint);
 
     /**
     * @brief  :  SetFileMaxSize 设置日志文件大小
@@ -111,7 +115,7 @@ public:
     * @return :  void
     * @retval :
     */
-    void SetFileMaxSize(int size);
+    static void SetFileMaxSize(int size);
 
     /**
     * @brief SetLogLevel 设置最小日志级别
@@ -119,7 +123,7 @@ public:
     * @param LOG_LEVEL level
     * @return:   void
     */
-    void SetLogLevel(LOG_LEVEL level);
+    static void SetLogLevel(LOG_LEVEL level);
 
     /**
     * @brief SetOutdateDay 设置日志过期时间
@@ -127,7 +131,21 @@ public:
     * @param int day 如果<=0,则认为设置不过期
     * @return:   void
     */
-    //void SetOutdateDay(int day);
+    static void SetOutdateDay(int day);
+
+    /**
+     * SetCoverMode
+     * 
+     * @para: bool iscoverywrite 是否覆盖写入
+     * @return:   void
+     */
+    static void SetCoverMode(bool iscoverywrite);
+        
+    static std::string SetCallBack(const TypeLogNormalCallBack& func);
+    static std::string SetCallBack(const TypeLogSpecCallBack& func);
+
+    static void RemoveCallBack(const std::string& key);
+
 private:
     EasyLog(void);
     virtual ~EasyLog(void);

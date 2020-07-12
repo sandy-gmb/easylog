@@ -4,6 +4,7 @@
 #include "logger.h"
 
 #include <sstream>
+#include <fstream>
 
 #ifdef _WINDOWS
 #include <Windows.h>
@@ -33,6 +34,8 @@
 #define EASY_LOG_DEFAULT_OUTDATEDAY         30              //预实现功能默认过期日志时间功能
 #define EASY_LOG_KEEP_FILE_OPEN             false           //程序是否保持日志文件打开
 #define EASY_LOG_DEFAULT_LOG_LEVEL          LOG_TRACE       //默认日志级别:TRACE
+#define EASY_LOG_DEFAULT_FILE_NAME          "log.txt"       //默认文件名
+#define EASY_LOG_DEFAULT_LINE_BUFF_SIZE		1024            /** 一行的最大缓冲 */
 
 using namespace std;
 
@@ -54,12 +57,19 @@ public:
 
     //TODO:由于宏作为编译开关不方便切换使用,每次都需要重新编译 因此将可能会改变的宏修改为变量并添加设置函数
     static LOG_LEVEL eLevel;                    //当前最低输出级别
-    static bool bKeepOpen;                      //程序是否保持文件打开
+    static bool bKeepOpen;                      //程序是否保持文件打开  暂未使用
     static std::string dir;                     //日志输出目录,在程序运行目录下建立
     static bool bPrint2StdOut;                  //是否输出到控制台
     static int fileMaxSize;                     //文件最大大小
     static int iOutDateDays;                    //日志过期时间
+
     static bool bCoverLog;                      //是否追加日志文件
+    static bool bFileNameDate;                  //是否使用日期创建文件名 否则使用时间创建文件名
+
+    //回调函数
+    static unordered_map<string, function<void(const string&)>> funNormalCallBack;     //返回常规日志信息,字符串包含所有信息系
+    static unordered_map<string, function<void(const string& prifix, LOG_LEVEL, const string&)>> funSpecCallBack; //返回详细日志信息,用于自定义输出日志记录
+
 };
 
 
@@ -73,10 +83,11 @@ std::string TimeStamp()
 
     // get the time, and convert it to struct tm format
     time_t a = time(0);
-    struct tm* b = localtime(&a);
+    struct tm b; 
+    localtime_s(&b, &a);
 
     // print the time to the string
-    strftime(str, 9, "%H_%M_%S", b);
+    strftime(str, 9, "%H_%M_%S", &b);
 
     return str;
 }
@@ -90,12 +101,28 @@ std::string DateStamp()
 
     // get the time, and convert it to struct tm format
     time_t a = time(0);
-    struct tm* b = localtime(&a);//VS中请自行修改
+    struct tm b;
+    localtime_s(&b, &a);//VS中请自行修改
 
     // print the time to the string
-    strftime(str, 11, "%Y_%m_%d", b);
+    strftime(str, 11, "%Y_%m_%d", &b);
 
     return str;
+}
+
+std::string LogEnumToString(LOG_LEVEL l)
+{
+	static const string  LOG_STRING[] =
+	{
+		"TRACE",
+		"DEBUG",
+		"INFO ",
+		"WARN ",
+		"ERROR",
+		"ALARM",
+		"FATAL",
+	};
+    return LOG_STRING[l];
 }
 
 EasyLog * EasyLog::GetInstance(std::string suffix)
@@ -107,24 +134,15 @@ EasyLog * EasyLog::GetInstance(std::string suffix)
 void EasyLog::WriteLog( LOG_LEVEL level, const char *pLogText, ... )
 {
     va_list args;
-    char logText[EASY_LOG_LINE_BUFF_SIZE] = { 0 };
+    char logText[EASY_LOG_DEFAULT_LINE_BUFF_SIZE] = { 0 };
     va_start(args, pLogText);
-    vsnprintf(logText, EASY_LOG_LINE_BUFF_SIZE - 1, pLogText, args);
+    vsnprintf(logText, EASY_LOG_DEFAULT_LINE_BUFF_SIZE - 1, pLogText, args);
     WriteLog(logText, level);
 }
 
 void EasyLog::WriteLog( std::string logText, LOG_LEVEL level /*= LOG_ERROR*/ )	
 {
-    static const char *const LOG_STRING[] =
-    {
-        "LOG_TRACE",
-        "LOG_DEBUG",
-        "LOG_INFO ",
-        "LOG_WARN ",
-        "LOG_ERROR",
-        "LOG_ALARM",
-        "LOG_FATAL",
-    };
+    
 
     if(level < m_pimpl->eLevel)
     {//日志级别 设置不打印
@@ -137,7 +155,7 @@ void EasyLog::WriteLog( std::string logText, LOG_LEVEL level /*= LOG_ERROR*/ )
 
     // 生成一行LOG字符串
     std::stringstream szLogLine;
-    szLogLine << "[" << DateStamp() <<"] [" << TimeStamp() << "] [" << LOG_STRING[level] << "] " << logText<<std::endl;//如果有需要请改成\r\n
+    szLogLine << "[" << DateStamp() <<"] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText<<std::endl;//如果有需要请改成\r\n
 
 
 #if defined EASY_LOG_DISABLE_LOG && EASY_LOG_DISABLE_LOG == 0
@@ -171,6 +189,33 @@ void EasyLog::WriteLog( std::string logText, LOG_LEVEL level /*= LOG_ERROR*/ )
     {
         std::cout << szLogLine.str();
     }
+}
+
+void EasyLog::SetOutdateDay(int day)
+{
+    Impl::iOutDateDays = day;
+}
+
+void EasyLog::SetCoverMode(bool iscoverywrite)
+{
+    Impl::bCoverLog = iscoverywrite;
+}
+
+string EasyLog::SetCallBack(const TypeLogNormalCallBack& func)
+{
+    //TODO:
+    return "";
+}
+
+std::string EasyLog::SetCallBack(const TypeLogSpecCallBack& func)
+{
+	//TODO:
+	return "";
+}
+
+void EasyLog::RemoveCallBack(const std::string& key)
+{
+	//TODO:
 }
 
 EasyLog::EasyLog( void )
@@ -224,62 +269,69 @@ std::string EasyLog::GenerateFilePath()
     std::string filepath;
 
     stringstream ss;
-#if defined EASY_LOG_FILE_NAME_DATE && EASY_LOG_FILE_NAME_DATE == 1
-#if defined EASY_LOG_COVER_LOG && EASY_LOG_COVER_LOG == 0
-    string t = DateStamp();
-    ss<< m_pimpl->dir;
-    ss>>filepath;
-    ss.clear();ss.str("");
-    ss<<<<t<<".txt";
-    ss>> m_pimpl->fileName;
-    ss.clear();ss.str("");
-#else
-    string t = TimeStamp();
-    if(m_pimpl->iIndex != 1)
+    if (m_pimpl->bFileNameDate)
     {
-        t = m_pimpl->fileNamePrefix;
+        if (m_pimpl->bCoverLog)
+        {
+            string t = DateStamp();
+            ss << m_pimpl->fileNamePrefix << "_" << t << ".txt";
+            ss >> m_pimpl->fileName;
+            ss.clear(); ss.str("");
+            ss << m_pimpl->dir;
+            ss >> filepath;
+            ss.clear(); ss.str("");
+        }
+        else
+        {
+            string t = TimeStamp();
+            if (m_pimpl->iIndex != 1)
+            {
+                t = m_pimpl->fileNamePrefix;
+            }
+            else
+            {
+                m_pimpl->fileNamePrefix = m_pimpl->sPrefix + t;
+            }
+            ss << m_pimpl->dir << "/" << DateStamp();
+            ss >> filepath;
+            ss.clear(); ss.str("");
+            ss << m_pimpl->fileNamePrefix << t << "_" << m_pimpl->iIndex << ".txt";
+            ss >> m_pimpl->fileName;
+            ss.clear(); ss.str("");
+            m_pimpl->iIndex++;
+        }
     }
     else
     {
-        m_pimpl->fileNamePrefix = m_pimpl->sPrefix+t;
+        m_pimpl->fileName = EASY_LOG_DEFAULT_FILE_NAME;
+        filepath = m_pimpl->dir;
     }
-    ss<<dir<<"/"<< DateStamp();
-    ss>>filepath;
-    ss.clear();ss.str("");
-    ss<<t<<"_"<<index<<".txt";
-    ss>> m_pimpl->fileName;
-    ss.clear();ss.str("");
-    m_pimpl->iIndex++;
-#endif
-#else
-    m_pimpl->fileName = EASY_LOG_FILE_NAME;
-    filepath = m_pimpl->dir ;
-#endif
+    
     return filepath;
 }
 
-void EasyLog::SetLogDir( std::string dir )
+void EasyLog::SetLogDir( std::string _dir )
 {
-    if(dir != m_pimpl->dir)
+    if(_dir != Impl::dir)
     {//修改了目录,则需要
         m_pimpl->iIndex = 1;
         if(m_pimpl->fileOut.is_open())
         {
             m_pimpl->fileOut.close();
         }
-        m_pimpl->dir = dir;
+        Impl::dir = _dir;
        Init();
     }
 }
 
 void EasyLog::SetPrint2StdOut( bool isprint )
 {
-    m_pimpl->bPrint2StdOut = isprint;
+    Impl::bPrint2StdOut = isprint;
 }
 
 void EasyLog::SetFileMaxSize( int size )
 {
-    m_pimpl->fileMaxSize = size;
+    Impl::fileMaxSize = size;
 }
 
 bool EasyLog::ComfirmFolderExists( std::string filepath )
@@ -345,21 +397,20 @@ bool EasyLog::Init()
     stringstream ss;
     ss<<filepath<<"\\"<< m_pimpl->fileName;
 
-#if defined EASY_LOG_COVER_LOG && EASY_LOG_COVER_LOG == 0
-    m_fileOut.open(ss.str().c_str(), ios::out|ios::binary);
-#else
-    m_fileOut.open(ss.str().c_str(), ios::out | ios::app|ios::binary);
-#endif
+    if (m_pimpl->bCoverLog)
+    {
+        m_pimpl->fileOut.open(ss.str().c_str(), ios::out | ios::binary);
+    }
+    else {
+        m_pimpl->fileOut.open(ss.str().c_str(), ios::out | ios::app | ios::binary);
+    }
+
     m_pimpl->isinited = true;
     return m_pimpl->fileOut.is_open();
 }
 
 void EasyLog::SetLogLevel( LOG_LEVEL level )
 {
-    m_pimpl->eLevel = level;
+    Impl::eLevel = level;
 }
 
-//void EasyLog::SetOutdateDay(int day)
-//{
-//    this->outdateday = day;
-//}
