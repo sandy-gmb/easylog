@@ -5,6 +5,8 @@
 
 #include <sstream>
 #include <fstream>
+#include <unordered_map>
+#include <mutex>
 
 #ifdef _WINDOWS
 #include <Windows.h>
@@ -19,13 +21,22 @@
 #endif
 
 #include <iostream>
-#include <unordered_map>
-#include <functional>
 #include <iomanip>
 #include <stdarg.h>
 #include <time.h>
-#include <sstream>
-#include <mutex>
+
+#include <cstdio>
+
+#if defined(_WIN32)
+#include <objbase.h>
+#elif defined(__linux__)
+#include <uuid/uuid.h>
+#else
+#error "uuid unsupport platform"
+#endif
+
+#define GUID_LEN 64
+
 
 /*********************     库默认参数值 不设置相关参数则使用默认参数        ***************************************************************/
 #define EASY_LOG_DEFAULT_DIR                "log"           /** 日志的默认目录文件名  */
@@ -68,10 +79,56 @@ public:
 
     //回调函数
     static unordered_map<string, function<void(const string&)>> funNormalCallBack;     //返回常规日志信息,字符串包含所有信息系
-    static unordered_map<string, function<void(const string& prifix, LOG_LEVEL, const string&)>> funSpecCallBack; //返回详细日志信息,用于自定义输出日志记录
+    static unordered_map<string, function<void(const string & prifix, LOG_LEVEL, const string&)>> funSpecCallBack; //返回详细日志信息,用于自定义输出日志记录
 
 };
 
+
+namespace uuid
+{
+#if defined(_WIN32)
+    static std::string generate()
+    {
+        char buf[GUID_LEN] = { 0 };
+        GUID guid;
+
+        if (CoCreateGuid(&guid))
+        {
+            return std::move(std::string(""));
+        }
+
+        sprintf_s(buf,
+            "%08X-%04X-%04x-%02X%02X-%02X%02X%02X%02X%02X%02X",
+            guid.Data1, guid.Data2, guid.Data3,
+            guid.Data4[0], guid.Data4[1], guid.Data4[2],
+            guid.Data4[3], guid.Data4[4], guid.Data4[5],
+            guid.Data4[6], guid.Data4[7]);
+
+        return std::move(std::string(buf));
+    }
+#elif defined(__linux__)
+    static std::string generate()
+    {
+        char buf[GUID_LEN] = { 0 };
+
+        uuid_t uu;
+        uuid_generate(uu);
+
+        int32_t index = 0;
+        for (int32_t i = 0; i < 16; i++)
+        {
+            int32_t len = i < 15 ?
+                sprintf(buf + index, "%02X-", uu[i]) :
+                sprintf(buf + index, "%02X", uu[i]);
+            if (len < 0)
+                return std::move(std::string(""));
+            index += len;
+        }
+
+        return std::move(std::string(buf));
+    }
+#endif
+}
 
 
 // ============================================================
@@ -83,7 +140,7 @@ std::string TimeStamp()
 
     // get the time, and convert it to struct tm format
     time_t a = time(0);
-    struct tm b; 
+    struct tm b;
     localtime_s(&b, &a);
 
     // print the time to the string
@@ -112,26 +169,26 @@ std::string DateStamp()
 
 std::string LogEnumToString(LOG_LEVEL l)
 {
-	static const string  LOG_STRING[] =
-	{
-		"TRACE",
-		"DEBUG",
-		"INFO ",
-		"WARN ",
-		"ERROR",
-		"ALARM",
-		"FATAL",
-	};
+    static const string  LOG_STRING[] =
+    {
+        "TRACE",
+        "DEBUG",
+        "INFO ",
+        "WARN ",
+        "ERROR",
+        "ALARM",
+        "FATAL",
+    };
     return LOG_STRING[l];
 }
 
-EasyLog * EasyLog::GetInstance(std::string suffix)
-{ 
+EasyLog* EasyLog::GetInstance(std::string suffix)
+{
     static EasyLog* m_pInstance = new EasyLog();
-    return m_pInstance; 
+    return m_pInstance;
 }
 
-void EasyLog::WriteLog( LOG_LEVEL level, const char *pLogText, ... )
+void EasyLog::WriteLog(LOG_LEVEL level, const char* pLogText, ...)
 {
     va_list args;
     char logText[EASY_LOG_DEFAULT_LINE_BUFF_SIZE] = { 0 };
@@ -140,53 +197,49 @@ void EasyLog::WriteLog( LOG_LEVEL level, const char *pLogText, ... )
     WriteLog(logText, level);
 }
 
-void EasyLog::WriteLog( std::string logText, LOG_LEVEL level /*= LOG_ERROR*/ )	
+void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
 {
-    
-
-    if(level < m_pimpl->eLevel)
+    //lock_guard<mutex> lk(m_pimpl->)l
+    if (level < m_pimpl->eLevel)
     {//日志级别 设置不打印
         return;
     }
-    if(!m_pimpl->isinited && !Init())
-    {
+    if (!m_pimpl->isinited && !Init())
+    {//TODO:此处提示也许需要修改 不断打印日志会导致控制台全是此信息
+        cout << "Log module init failed, please check reason. ";
         return;
     }
 
     // 生成一行LOG字符串
     std::stringstream szLogLine;
-    szLogLine << "[" << DateStamp() <<"] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText<<std::endl;//如果有需要请改成\r\n
+    szLogLine << "[" << DateStamp() << "] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText << std::endl;//如果有需要请改成\r\n
 
-
-#if defined EASY_LOG_DISABLE_LOG && EASY_LOG_DISABLE_LOG == 0
     /* 输出LOG字符串 - 文件打开不成功的情况下按照标准输出 */
-    if (m_pimpl->fileOut.is_open())
+    if (m_pimpl->fileOut.is_open() && Impl::bFileNameDate && !Impl::bCoverLog && !CheckFileSize())
     {
-#if defined EASY_LOG_FILE_NAME_DATE && EASY_LOG_FILE_NAME_DATE == 1
-#if defined EASY_LOG_FILE_NAME_DATE && EASY_LOG_COVER_LOG != 0
-        if(!CheckFileSize())
-        {//创建目录失败,输出日志到控制台
-            std::cout << szLogLine.str();
-        }
-        
-#endif
-#endif
         //检查文件大小 如果大于指定文件大小 则更换日志文件
-        if(m_pimpl->fileSize != -1)
+        if (m_pimpl->fileSize != -1)
         {
             m_pimpl->fileSize += szLogLine.str().size();
         }
         m_pimpl->fileOut.write(szLogLine.str().c_str(), szLogLine.str().size());
+        for (auto it = m_pimpl->funNormalCallBack.begin(); it != m_pimpl->funNormalCallBack.end(); it++)
+        {
+            it->second(szLogLine.str());
+        }
+        for (auto it = m_pimpl->funSpecCallBack.begin(); it != m_pimpl->funSpecCallBack.end(); it++)
+        {
+            it->second(m_pimpl->sPrefix, level, logText);
+        }
         m_pimpl->fileOut.flush();
+
+        if (m_pimpl->bPrint2StdOut)
+        {
+            std::cout << szLogLine.str();
+        }
     }
     else
-    {
-        std::cout << szLogLine.str();
-    }
-#endif
-
-    if(m_pimpl->bPrint2StdOut)
-    {
+    {//文件打开失败 输出到控制台
         std::cout << szLogLine.str();
     }
 }
@@ -203,22 +256,31 @@ void EasyLog::SetCoverMode(bool iscoverywrite)
 
 string EasyLog::SetCallBack(const TypeLogNormalCallBack& func)
 {
-    //TODO:
-    return "";
+    string uid = uuid::generate();
+    Impl::funNormalCallBack.insert(make_pair(uid, func));
+    return uid;
 }
 
 std::string EasyLog::SetCallBack(const TypeLogSpecCallBack& func)
 {
-	//TODO:
-	return "";
+    string uid = uuid::generate();
+    Impl::funSpecCallBack.insert(make_pair(uid, func));
+    return uid;
 }
 
 void EasyLog::RemoveCallBack(const std::string& key)
 {
-	//TODO:
+    if (Impl::funNormalCallBack.count(key) != 0)
+    {
+        Impl::funNormalCallBack.erase(Impl::funNormalCallBack.find(key));
+    }
+    if (Impl::funSpecCallBack.count(key) != 0)
+    {
+        Impl::funSpecCallBack.erase(Impl::funSpecCallBack.find(key));
+    }
 }
 
-EasyLog::EasyLog( void )
+EasyLog::EasyLog(void)
 {
     m_pimpl->dir = EASY_LOG_DEFAULT_DIR;
     m_pimpl->bKeepOpen = EASY_LOG_KEEP_FILE_OPEN;
@@ -229,7 +291,7 @@ EasyLog::EasyLog( void )
     m_pimpl->isinited = false;
 }
 
-EasyLog::~EasyLog( void )
+EasyLog::~EasyLog(void)
 {
     //WriteLog("------------------ LOG SYSTEM END ------------------ ", EasyLog::LOG_INFO);
     if (m_pimpl->fileOut.is_open())
@@ -240,25 +302,25 @@ EasyLog::~EasyLog( void )
 bool EasyLog::CheckFileSize()
 {
     //检查日志大小,如果文件大小大于10M,则关闭当前文件,并以当前时间名新建下一个文件
-    if(m_pimpl->fileSize == -1)
+    if (m_pimpl->fileSize == -1)
     {
         m_pimpl->fileOut.seekp(0, m_pimpl->fileOut.end);
         m_pimpl->fileSize = m_pimpl->fileOut.tellp();
     }
-    if(m_pimpl->fileSize >= m_pimpl->fileMaxSize*1024*1024)
+    if (m_pimpl->fileSize >= m_pimpl->fileMaxSize * 1024 * 1024)
     {
         //关闭原文件
         m_pimpl->fileOut.close();
         //新建文件用于日志输出
         string filepath = GenerateFilePath();
-        if(!ComfirmFolderExists(filepath))
+        if (!ComfirmFolderExists(filepath))
         {
             return false;
         }
         stringstream ss;
-        ss<<filepath<<"\\"<< m_pimpl->fileName;
+        ss << filepath << "\\" << m_pimpl->fileName;
         m_pimpl->fileSize = 0;
-        m_pimpl->fileOut.open( ss.str().c_str(), ios::out|ios::app);
+        m_pimpl->fileOut.open(ss.str().c_str(), ios::out | ios::app);
     }
     return true;
 }
@@ -306,35 +368,35 @@ std::string EasyLog::GenerateFilePath()
         m_pimpl->fileName = EASY_LOG_DEFAULT_FILE_NAME;
         filepath = m_pimpl->dir;
     }
-    
+
     return filepath;
 }
 
-void EasyLog::SetLogDir( std::string _dir )
+void EasyLog::SetLogDir(std::string _dir)
 {
-    if(_dir != Impl::dir)
+    if (_dir != Impl::dir)
     {//修改了目录,则需要
         m_pimpl->iIndex = 1;
-        if(m_pimpl->fileOut.is_open())
+        if (m_pimpl->fileOut.is_open())
         {
             m_pimpl->fileOut.close();
         }
         Impl::dir = _dir;
-       Init();
+        Init();
     }
 }
 
-void EasyLog::SetPrint2StdOut( bool isprint )
+void EasyLog::SetPrint2StdOut(bool isprint)
 {
     Impl::bPrint2StdOut = isprint;
 }
 
-void EasyLog::SetFileMaxSize( int size )
+void EasyLog::SetFileMaxSize(int size)
 {
     Impl::fileMaxSize = size;
 }
 
-bool EasyLog::ComfirmFolderExists( std::string filepath )
+bool EasyLog::ComfirmFolderExists(std::string filepath)
 {
 #ifdef _WINDOWS //WINDOWS OS
     CString filep;
@@ -344,7 +406,7 @@ bool EasyLog::ComfirmFolderExists( std::string filepath )
         CString szPath = filep;
         CString strDir(szPath);//存放要创建的目录字符串
         //确保以'\'结尾以创建最后一个目录
-        if (strDir.GetAt(strDir.GetLength()-1)!=_T('/'))
+        if (strDir.GetAt(strDir.GetLength() - 1) != _T('/'))
         {
             strDir.AppendChar(_T('/'));
         }
@@ -352,13 +414,13 @@ bool EasyLog::ComfirmFolderExists( std::string filepath )
         CString strTemp;//一个临时变量,存放目录字符串
         bool bSuccess = false;//成功标志
         //遍历要创建的字符串
-        for (int i=0;i<strDir.GetLength();++i)
+        for (int i = 0; i < strDir.GetLength(); ++i)
         {
-            if (strDir.GetAt(i) != _T('/')) 
+            if (strDir.GetAt(i) != _T('/'))
             {//如果当前字符不是'/'
                 strTemp.AppendChar(strDir.GetAt(i));
             }
-            else 
+            else
             {//如果当前字符是'/'
                 vPath.push_back(strTemp);//将当前层的字符串添加到数组中
                 strTemp.AppendChar(_T('/'));
@@ -367,17 +429,17 @@ bool EasyLog::ComfirmFolderExists( std::string filepath )
 
         //遍历存放目录的数组,创建每层目录
         std::vector<CString>::const_iterator vIter;
-        for (vIter = vPath.begin(); vIter != vPath.end(); vIter++) 
+        for (vIter = vPath.begin(); vIter != vPath.end(); vIter++)
         {
             //如果CreateDirectory执行成功,返回true,否则返回false
-            bSuccess = CreateDirectory(*vIter, NULL) ? true : false;    
+            bSuccess = CreateDirectory(*vIter, NULL) ? true : false;
         }
 
-        return PathFileExists(filep)==TRUE;
+        return PathFileExists(filep) == TRUE;
     }
 #else//LINUX系统
     DIR* dp;
-    if(dp = opendir(filepath.c_str()) == NULL || mkdir(filepath.c_str(), S_IRWXU | S_IRWXG | S_IRWXO ) == -1)
+    if (dp = opendir(filepath.c_str()) == NULL || mkdir(filepath.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == -1)
     {//没有则创建目录
         return false;
     }
@@ -395,7 +457,7 @@ bool EasyLog::Init()
     ComfirmFolderExists(filepath);
 
     stringstream ss;
-    ss<<filepath<<"\\"<< m_pimpl->fileName;
+    ss << filepath << "\\" << m_pimpl->fileName;
 
     if (m_pimpl->bCoverLog)
     {
@@ -409,7 +471,7 @@ bool EasyLog::Init()
     return m_pimpl->fileOut.is_open();
 }
 
-void EasyLog::SetLogLevel( LOG_LEVEL level )
+void EasyLog::SetLogLevel(LOG_LEVEL level)
 {
     Impl::eLevel = level;
 }
