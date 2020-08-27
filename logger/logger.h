@@ -25,7 +25,9 @@
 #define EASYLOG_H_
 
 #include <string>
+#include <sstream>
 #include <functional>
+#include <memory>
 
 #pragma once
 
@@ -35,39 +37,12 @@
 #   define  vsnprintf_s vsnprintf//此处因为我用的是mingw，直接用了vsnprintf，请自行判断
 #endif
 
-/** 写日志方法 */
-#define EWRITE_LOG(LEVEL, FMT, ...) \
-{ \
-    std::stringstream ss; \
-    ss << FMT; \
-    if (LEVEL != EasyLog::LOG_INFO) \
-    { \
-        ss << " (" << __FILE__ << " : " << __FUNCTION__ << " : " << __LINE__ << " )"; \
-    } \
-    EasyLog::GetInstance()->WriteLog(LEVEL, ss.str().c_str(), ##__VA_ARGS__); \
-}
+ /** 日志级别定义*/
+enum LOG_LEVEL { LOG_TRACE = 0, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 
-//! 快速宏
-#define ELOG_TRACE(FMT , ...) EWRITE_LOG(EasyLog::LOG_TRACE, FMT, ##__VA_ARGS__)
-#define ELOG_DEBUG(FMT , ...) EWRITE_LOG(EasyLog::LOG_DEBUG, FMT, ##__VA_ARGS__)
-#define ELOG_INFO(FMT  , ...) EWRITE_LOG(EasyLog::LOG_INFO , FMT, ##__VA_ARGS__)
-#define ELOG_WARN(FMT  , ...) EWRITE_LOG(EasyLog::LOG_WARN , FMT, ##__VA_ARGS__)
-#define ELOG_ERROR(FMT , ...) EWRITE_LOG(EasyLog::LOG_ERROR, FMT, ##__VA_ARGS__)
-#define ELOG_ALARM(FMT , ...) EWRITE_LOG(EasyLog::LOG_ALARM, FMT, ##__VA_ARGS__)
-#define ELOG_FATAL(FMT , ...) EWRITE_LOG(EasyLog::LOG_FATAL, FMT, ##__VA_ARGS__)
-
-#define ELOGT( FMT , ... ) ELOG_TRACE(FMT, ##__VA_ARGS__)
-#define ELOGD( FMT , ... ) ELOG_DEBUG(FMT, ##__VA_ARGS__)
-#define ELOGI( FMT , ... ) ELOG_INFO (FMT, ##__VA_ARGS__)
-#define ELOGW( FMT , ... ) ELOG_WARN (FMT, ##__VA_ARGS__)
-#define ELOGE( FMT , ... ) ELOG_ERROR(FMT, ##__VA_ARGS__)
-#define ELOGA( FMT , ... ) ELOG_ALARM(FMT, ##__VA_ARGS__)
-#define ELOGF( FMT , ... ) ELOG_FATAL(FMT, ##__VA_ARGS__)
 
 #include "logger_global.h"
 
-/** 日志级别定义*/
-enum LOG_LEVEL { LOG_TRACE = 0, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_ALARM, LOG_FATAL };
 LOGGER_API inline std::string LogEnumToString(LOG_LEVEL l);
 
 typedef std::function< void(const std::string&)> TypeLogNormalCallBack;
@@ -79,13 +54,11 @@ public:
 
 public:
     /** 单例模式 */
-    static EasyLog * GetInstance(std::string suffix = "") ;
-    //void EasyLogDestroy(){delete this;}//调用：EasyLog::GetInstance()->EasyLogDestroy();不建议调用，destroy后再次调用会崩溃，每次写日志已经flush了，所以不太需要，如果要调用，请保证在最后用
-
+    static std::shared_ptr<EasyLog> GetInstance(const std::string& prefix = "") ;
+    virtual ~EasyLog(void);
 public:
     /** 写日志操作 */
 	void WriteLog(LOG_LEVEL level, const char *pLogText, ...);
-
 	void WriteLog(std::string logText, LOG_LEVEL level = LOG_ERROR);
 
     /** 设置函数 静态函数 用于统一设置相关配置 */
@@ -147,8 +120,7 @@ public:
     static void RemoveCallBack(const std::string& key);
 
 private:
-    EasyLog(void);
-    virtual ~EasyLog(void);
+    EasyLog(const std::string& prefix);
 
     bool Init();
 
@@ -159,12 +131,35 @@ private:
 
     bool ComfirmFolderExists(std::string filepath);
 
+    void DeleteOutdatedFiles();
+
 private:
     class Impl;
     Impl* m_pimpl;
 };
 
 #define ELOGGERF(str) EasyLog::GetInstance(str)
-#define ELOGGER EasyLog::GetInstance()
+#define ELOGGER EasyLog::GetInstance("")
+
+/** 写日志方法 */
+#define EWRITE_LOG(LEVEL, FMT, ...) \
+{ \
+    std::stringstream ss; \
+    ss << FMT; \
+    if (LEVEL != LOG_INFO) \
+    { \
+        ss << " (" << __FILE__ << " : " << __FUNCTION__ << " : " << __LINE__ << " )"; \
+    } \
+    EasyLog::GetInstance("")->WriteLog(LEVEL, ss.str().c_str(), ##__VA_ARGS__); \
+}
+
+#define ELOGT( FMT , ... ) EWRITE_LOG(LOG_TRACE, FMT, ##__VA_ARGS__)
+#define ELOGD( FMT , ... ) EWRITE_LOG(LOG_DEBUG, FMT, ##__VA_ARGS__)
+#define ELOGI( FMT , ... ) EWRITE_LOG(LOG_INFO , FMT, ##__VA_ARGS__)
+#define ELOGW( FMT , ... ) EWRITE_LOG(LOG_WARN , FMT, ##__VA_ARGS__)
+#define ELOGE( FMT , ... ) EWRITE_LOG(LOG_ERROR, FMT, ##__VA_ARGS__)
+#define ELOGA( FMT , ... ) EWRITE_LOG(LOG_ALARM, FMT, ##__VA_ARGS__)
+#define ELOGF( FMT , ... ) EWRITE_LOG(LOG_FATAL, FMT, ##__VA_ARGS__)
+
 
 #endif /* EASYLOG_H_ */

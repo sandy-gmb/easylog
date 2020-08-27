@@ -103,7 +103,8 @@
       <Command>xcopy /e /y $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
 xcopy /e /y $(OutDir)$(TargetName).pdb $(ProjectDir)..\bak\$(PlatformName)\
 xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
-</Command>
+xcopy /e /y $(OutDir)$(TargetName).pdb $(ProjectDir)..bin\
+xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

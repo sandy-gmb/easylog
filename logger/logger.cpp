@@ -7,6 +7,12 @@
 #include <fstream>
 #include <unordered_map>
 #include <mutex>
+#include <cstdio>
+#include <io.h>
+#include <iostream>
+#include <iomanip>
+#include <stdarg.h>
+#include <ctime>
 
 #ifdef _WINDOWS
 #include <Windows.h>
@@ -14,18 +20,10 @@
 #include <tchar.h>
 #include <vector>
 #else
-#include <stdio.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
-
-#include <iostream>
-#include <iomanip>
-#include <stdarg.h>
-#include <time.h>
-
-#include <cstdio>
 
 #if defined(_WIN32)
 #include <objbase.h>
@@ -53,6 +51,10 @@ using namespace std;
 class EasyLog::Impl
 {
 public:
+
+    list<string> CheckOutDatadFiles(const string& rootDir, int days);
+    void DeleteOutdatedFiles(const list<string>& filelist);
+
     static unordered_map<std::string, shared_ptr<EasyLog> > mHandle;        //前缀与句柄的映射
     mutex fileMutex;                    //当前前缀的文件锁
     string sPrefix;                     //当前自定义前缀
@@ -74,15 +76,73 @@ public:
     static int fileMaxSize;                     //文件最大大小
     static int iOutDateDays;                    //日志过期时间
 
-    static bool bCoverLog;                      //是否追加日志文件
+    static bool bCoverLog;                      //是否每次都覆盖文件 此种情况下 只写一个文件 程序打开时建立或重写此文件
     static bool bFileNameDate;                  //是否使用日期创建文件名 否则使用时间创建文件名
 
     //回调函数
-    static unordered_map<string, function<void(const string&)>> funNormalCallBack;     //返回常规日志信息,字符串包含所有信息系
-    static unordered_map<string, function<void(const string & prifix, LOG_LEVEL, const string&)>> funSpecCallBack; //返回详细日志信息,用于自定义输出日志记录
+    static unordered_map<string, TypeLogNormalCallBack> funNormalCallBack;     //返回常规日志信息,字符串包含所有信息系
+    static unordered_map<string, TypeLogSpecCallBack> funSpecCallBack; //返回详细日志信息,用于自定义输出日志记录
+    static mutex chkmutex;
 
 };
+unordered_map<std::string, shared_ptr<EasyLog> > EasyLog::Impl::mHandle;
+LOG_LEVEL EasyLog::Impl::eLevel = EASY_LOG_DEFAULT_LOG_LEVEL;
+bool EasyLog::Impl::bKeepOpen = EASY_LOG_KEEP_FILE_OPEN;
+std::string EasyLog::Impl::dir = EASY_LOG_DEFAULT_DIR;
+bool EasyLog::Impl::bPrint2StdOut = EASY_LOG_PRINT_LOG;
+int EasyLog::Impl::fileMaxSize = EASY_LOG_DEFAULT_FILE_MAX_SIZE;
+int EasyLog::Impl::iOutDateDays = EASY_LOG_DEFAULT_OUTDATEDAY;
+bool EasyLog::Impl::bCoverLog = false;
+bool EasyLog::Impl::bFileNameDate = true;
+unordered_map<string, TypeLogNormalCallBack> EasyLog::Impl::funNormalCallBack;
+unordered_map<string, TypeLogSpecCallBack> EasyLog::Impl::funSpecCallBack;
+mutex EasyLog::Impl::chkmutex;
 
+
+
+std::list<std::string> EasyLog::Impl::CheckOutDatadFiles(const string& rootDir, int days)
+{
+    std::list<std::string> filepathlist;
+    static time_t lastcheck = time(0)- 60 * 60 * 25;
+    time_t curt = time(0);
+    if (curt - lastcheck < 60 * 60 * 24)//每天检查一次
+        return filepathlist;
+
+    //遍历目录
+    _finddata_t fileinfo;
+    string filters = rootDir + "\\*.*";
+    long handle = _findfirst(filters.c_str(), &fileinfo);
+    if (-1 == handle)
+        return filepathlist;
+    // get the time, and convert it to struct tm format
+    do
+    {
+        long long dur_sec = curt - fileinfo.time_write;
+        string name = fileinfo.name;
+        if ((fileinfo.attrib & _A_SUBDIR) == 0 && dur_sec > days * 60 * 60 * 24)
+        {
+            string filep = rootDir + "\\" + fileinfo.name;
+            filepathlist.push_back(filep);
+        }
+        else if ((fileinfo.attrib & _A_SUBDIR) != 0 && name != "." && name != "..")
+        {
+            string filep = rootDir + "\\" + name;
+            filepathlist.merge(CheckOutDatadFiles(filep, days));
+        }
+
+    } while (_findnext(handle, &fileinfo) == 0);
+    _findclose(handle);
+    lastcheck = curt;
+    return filepathlist;
+}
+
+void EasyLog::Impl::DeleteOutdatedFiles(const list<string>& filelist)
+{
+    for (auto filep : filelist)
+    {
+        remove(filep.c_str());
+    }
+}
 
 namespace uuid
 {
@@ -182,10 +242,14 @@ std::string LogEnumToString(LOG_LEVEL l)
     return LOG_STRING[l];
 }
 
-EasyLog* EasyLog::GetInstance(std::string suffix)
+shared_ptr<EasyLog> EasyLog::GetInstance(const std::string& prefix)
 {
-    static EasyLog* m_pInstance = new EasyLog();
-    return m_pInstance;
+    std::lock_guard<std::mutex> lk(Impl::chkmutex);
+    if (Impl::mHandle.count(prefix) != 0)
+        return Impl::mHandle[prefix];
+    shared_ptr<EasyLog> t(new EasyLog(prefix));
+    Impl::mHandle.insert(make_pair(prefix, t));
+    return t;
 }
 
 void EasyLog::WriteLog(LOG_LEVEL level, const char* pLogText, ...)
@@ -194,11 +258,13 @@ void EasyLog::WriteLog(LOG_LEVEL level, const char* pLogText, ...)
     char logText[EASY_LOG_DEFAULT_LINE_BUFF_SIZE] = { 0 };
     va_start(args, pLogText);
     vsnprintf(logText, EASY_LOG_DEFAULT_LINE_BUFF_SIZE - 1, pLogText, args);
+    va_end(args);
     WriteLog(logText, level);
 }
 
 void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
 {
+    DeleteOutdatedFiles();
     //lock_guard<mutex> lk(m_pimpl->)l
     if (level < m_pimpl->eLevel)
     {//日志级别 设置不打印
@@ -215,7 +281,8 @@ void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
     szLogLine << "[" << DateStamp() << "] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText << std::endl;//如果有需要请改成\r\n
 
     /* 输出LOG字符串 - 文件打开不成功的情况下按照标准输出 */
-    if (m_pimpl->fileOut.is_open() && Impl::bFileNameDate && !Impl::bCoverLog && !CheckFileSize())
+    bool isop = m_pimpl->fileOut.is_open(), chkf = CheckFileSize();
+    if ( isop && Impl::bFileNameDate && !Impl::bCoverLog && chkf)
     {
         //检查文件大小 如果大于指定文件大小 则更换日志文件
         if (m_pimpl->fileSize != -1)
@@ -243,6 +310,7 @@ void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
         std::cout << szLogLine.str();
     }
 }
+
 
 void EasyLog::SetOutdateDay(int day)
 {
@@ -280,7 +348,8 @@ void EasyLog::RemoveCallBack(const std::string& key)
     }
 }
 
-EasyLog::EasyLog(void)
+EasyLog::EasyLog(const std::string& prefix)
+    : m_pimpl(new Impl)
 {
     m_pimpl->dir = EASY_LOG_DEFAULT_DIR;
     m_pimpl->bKeepOpen = EASY_LOG_KEEP_FILE_OPEN;
@@ -288,6 +357,8 @@ EasyLog::EasyLog(void)
     m_pimpl->bPrint2StdOut = EASY_LOG_PRINT_LOG;
     m_pimpl->iOutDateDays = EASY_LOG_DEFAULT_OUTDATEDAY;
     m_pimpl->eLevel = EASY_LOG_DEFAULT_LOG_LEVEL;
+    m_pimpl->sPrefix = prefix;
+    m_pimpl->iIndex = 0;
     m_pimpl->isinited = false;
 }
 
@@ -296,8 +367,8 @@ EasyLog::~EasyLog(void)
     //WriteLog("------------------ LOG SYSTEM END ------------------ ", EasyLog::LOG_INFO);
     if (m_pimpl->fileOut.is_open())
         m_pimpl->fileOut.close();
+    delete m_pimpl;
 }
-
 
 bool EasyLog::CheckFileSize()
 {
@@ -357,7 +428,7 @@ std::string EasyLog::GenerateFilePath()
             ss << m_pimpl->dir << "/" << DateStamp();
             ss >> filepath;
             ss.clear(); ss.str("");
-            ss << m_pimpl->fileNamePrefix << t << "_" << m_pimpl->iIndex << ".txt";
+            ss << m_pimpl->fileNamePrefix << "_" << m_pimpl->iIndex << ".txt";
             ss >> m_pimpl->fileName;
             ss.clear(); ss.str("");
             m_pimpl->iIndex++;
@@ -447,6 +518,13 @@ bool EasyLog::ComfirmFolderExists(std::string filepath)
 #endif
     return true;
 
+}
+
+void EasyLog::DeleteOutdatedFiles()
+{
+    list<string> filelst;
+    filelst = m_pimpl->CheckOutDatadFiles(Impl::dir, Impl::iOutDateDays);
+    m_pimpl->DeleteOutdatedFiles(filelst);
 }
 
 bool EasyLog::Init()

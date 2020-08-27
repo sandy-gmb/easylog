@@ -6,7 +6,7 @@
 
 int main()
 {
-    ELOGGER->SetLogLevel(EasyLog::LOG_DEBUG);
+    ELOGGER->SetLogLevel(LOG_DEBUG);
     ELOGD("debug");
     ELOGT("trace");
     ELOGE("error");

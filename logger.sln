@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "logger", "logger\logger.vcxproj", "{5A66219D-C96B-404A-A48E-A0C7159774C8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testlogger", "testlogger\testlogger.vcxproj", "{BD0FA328-B1E4-4CD6-8CED-0F730C187873}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5A66219D-C96B-404A-A48E-A0C7159774C8} = {5A66219D-C96B-404A-A48E-A0C7159774C8}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
