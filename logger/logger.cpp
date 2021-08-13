@@ -1,4 +1,4 @@
-// logger.cpp : ¶¨Òå DLL Ó¦ÓÃ³ÌĞòµÄµ¼³öº¯Êı¡£--
+ï»¿// logger.cpp : å®šä¹‰ DLL åº”ç”¨ç¨‹åºçš„å¯¼å‡ºå‡½æ•°ã€‚--
 //
 
 #include "logger.h"
@@ -36,15 +36,15 @@
 #define GUID_LEN 64
 
 
-/*********************     ¿âÄ¬ÈÏ²ÎÊıÖµ ²»ÉèÖÃÏà¹Ø²ÎÊıÔòÊ¹ÓÃÄ¬ÈÏ²ÎÊı        ***************************************************************/
-#define EASY_LOG_DEFAULT_DIR                "log"           /** ÈÕÖ¾µÄÄ¬ÈÏÄ¿Â¼ÎÄ¼şÃû  */
-#define EASY_LOG_PRINT_LOG                  false           /** Ä¬ÈÏ±íÊ¾½ûÓÃ´òÓ¡µ½¿ØÖÆÌ¨ */
-#define EASY_LOG_DEFAULT_FILE_MAX_SIZE      10              /** Ä¬ÈÏÈÕÖ¾ÎÄ¼ş×î´ó´óĞ¡,µ¥Î»M */
-#define EASY_LOG_DEFAULT_OUTDATEDAY         30              //Ô¤ÊµÏÖ¹¦ÄÜÄ¬ÈÏ¹ıÆÚÈÕÖ¾Ê±¼ä¹¦ÄÜ
-#define EASY_LOG_KEEP_FILE_OPEN             false           //³ÌĞòÊÇ·ñ±£³ÖÈÕÖ¾ÎÄ¼ş´ò¿ª
-#define EASY_LOG_DEFAULT_LOG_LEVEL          LOG_TRACE       //Ä¬ÈÏÈÕÖ¾¼¶±ğ:TRACE
-#define EASY_LOG_DEFAULT_FILE_NAME          "log.txt"       //Ä¬ÈÏÎÄ¼şÃû
-#define EASY_LOG_DEFAULT_LINE_BUFF_SIZE		1024            /** Ò»ĞĞµÄ×î´ó»º³å */
+/*********************     åº“é»˜è®¤å‚æ•°å€¼ ä¸è®¾ç½®ç›¸å…³å‚æ•°åˆ™ä½¿ç”¨é»˜è®¤å‚æ•°        ***************************************************************/
+#define EASY_LOG_DEFAULT_DIR                "log"           /** æ—¥å¿—çš„é»˜è®¤ç›®å½•æ–‡ä»¶å  */
+#define EASY_LOG_PRINT_LOG                  false           /** é»˜è®¤è¡¨ç¤ºç¦ç”¨æ‰“å°åˆ°æ§åˆ¶å° */
+#define EASY_LOG_DEFAULT_FILE_MAX_SIZE      10              /** é»˜è®¤æ—¥å¿—æ–‡ä»¶æœ€å¤§å¤§å°,å•ä½M */
+#define EASY_LOG_DEFAULT_OUTDATEDAY         30              //é¢„å®ç°åŠŸèƒ½é»˜è®¤è¿‡æœŸæ—¥å¿—æ—¶é—´åŠŸèƒ½
+#define EASY_LOG_KEEP_FILE_OPEN             false           //ç¨‹åºæ˜¯å¦ä¿æŒæ—¥å¿—æ–‡ä»¶æ‰“å¼€
+#define EASY_LOG_DEFAULT_LOG_LEVEL          LOG_TRACE       //é»˜è®¤æ—¥å¿—çº§åˆ«:TRACE
+#define EASY_LOG_DEFAULT_FILE_NAME          "log.txt"       //é»˜è®¤æ–‡ä»¶å
+#define EASY_LOG_DEFAULT_LINE_BUFF_SIZE     1024            /** ä¸€è¡Œçš„æœ€å¤§ç¼“å†² */
 
 using namespace std;
 
@@ -55,33 +55,33 @@ public:
     list<string> CheckOutDatadFiles(const string& rootDir, int days);
     void DeleteOutdatedFiles(const list<string>& filelist);
 
-    static unordered_map<std::string, shared_ptr<EasyLog> > mHandle;        //Ç°×ºÓë¾ä±úµÄÓ³Éä
-    mutex fileMutex;                    //µ±Ç°Ç°×ºµÄÎÄ¼şËø
-    string sPrefix;                     //µ±Ç°×Ô¶¨ÒåÇ°×º
-    /** Ğ´ÎÄ¼ş */
-    std::ofstream  fileOut;             //Êä³öÎÄ¼şÁ÷¶ÔÏó
-    std::string fileName;               //µ±Ç°Ê¹ÓÃµÄÎÄ¼şÃû      ±ê×¼È«Â·¾¶¸ñÊ½Îª ./log/2019-11-18/08_10_22_01.txt
-    std::string fileNamePrefix;         //µ±Ç°Ê¹ÓÃµÄÎÄ¼şÃûÇ°×º  Ç°×º°üº¬×Ô¶¨Ç°×ººÍÊ×¸öÎÄ¼ş´´Á¢µÄÊ±¼ä
-    int iIndex;                         //ÎÄ¼şÃûºó×ºÊµÖÊÊÇ±¾´ÎÎÄ¼şµÄË÷Òı ÎÄ¼ş´óĞ¡´óÓÚ10Mºó+1
+    static unordered_map<std::string, shared_ptr<EasyLog> > mHandle;        //å‰ç¼€ä¸å¥æŸ„çš„æ˜ å°„
+    mutex fileMutex;                    //å½“å‰å‰ç¼€çš„æ–‡ä»¶é”
+    string sPrefix;                     //å½“å‰è‡ªå®šä¹‰å‰ç¼€
+    /** å†™æ–‡ä»¶ */
+    std::ofstream  fileOut;             //è¾“å‡ºæ–‡ä»¶æµå¯¹è±¡
+    std::string fileName;               //å½“å‰ä½¿ç”¨çš„æ–‡ä»¶å      æ ‡å‡†å…¨è·¯å¾„æ ¼å¼ä¸º ./log/2019-11-18/08_10_22_01.txt
+    std::string fileNamePrefix;         //å½“å‰ä½¿ç”¨çš„æ–‡ä»¶åå‰ç¼€  å‰ç¼€åŒ…å«è‡ªå®šå‰ç¼€å’Œé¦–ä¸ªæ–‡ä»¶åˆ›ç«‹çš„æ—¶é—´
+    int iIndex;                         //æ–‡ä»¶ååç¼€å®è´¨æ˜¯æœ¬æ¬¡æ–‡ä»¶çš„ç´¢å¼• æ–‡ä»¶å¤§å°å¤§äº10Må+1
 
-    long long fileSize;                 //µ±Ç°ÎÄ¼ş´óĞ¡
+    long long fileSize;                 //å½“å‰æ–‡ä»¶å¤§å°
 
     bool isinited;
 
-    //TODO:ÓÉÓÚºê×÷Îª±àÒë¿ª¹Ø²»·½±ãÇĞ»»Ê¹ÓÃ,Ã¿´Î¶¼ĞèÒªÖØĞÂ±àÒë Òò´Ë½«¿ÉÄÜ»á¸Ä±äµÄºêĞŞ¸ÄÎª±äÁ¿²¢Ìí¼ÓÉèÖÃº¯Êı
-    static LOG_LEVEL eLevel;                    //µ±Ç°×îµÍÊä³ö¼¶±ğ
-    static bool bKeepOpen;                      //³ÌĞòÊÇ·ñ±£³ÖÎÄ¼ş´ò¿ª  ÔİÎ´Ê¹ÓÃ
-    static std::string dir;                     //ÈÕÖ¾Êä³öÄ¿Â¼,ÔÚ³ÌĞòÔËĞĞÄ¿Â¼ÏÂ½¨Á¢
-    static bool bPrint2StdOut;                  //ÊÇ·ñÊä³öµ½¿ØÖÆÌ¨
-    static int fileMaxSize;                     //ÎÄ¼ş×î´ó´óĞ¡
-    static int iOutDateDays;                    //ÈÕÖ¾¹ıÆÚÊ±¼ä
+    //TODO:ç”±äºå®ä½œä¸ºç¼–è¯‘å¼€å…³ä¸æ–¹ä¾¿åˆ‡æ¢ä½¿ç”¨,æ¯æ¬¡éƒ½éœ€è¦é‡æ–°ç¼–è¯‘ å› æ­¤å°†å¯èƒ½ä¼šæ”¹å˜çš„å®ä¿®æ”¹ä¸ºå˜é‡å¹¶æ·»åŠ è®¾ç½®å‡½æ•°
+    static LOG_LEVEL eLevel;                    //å½“å‰æœ€ä½è¾“å‡ºçº§åˆ«
+    static bool bKeepOpen;                      //ç¨‹åºæ˜¯å¦ä¿æŒæ–‡ä»¶æ‰“å¼€  æš‚æœªä½¿ç”¨
+    static std::string dir;                     //æ—¥å¿—è¾“å‡ºç›®å½•,åœ¨ç¨‹åºè¿è¡Œç›®å½•ä¸‹å»ºç«‹
+    static bool bPrint2StdOut;                  //æ˜¯å¦è¾“å‡ºåˆ°æ§åˆ¶å°
+    static int fileMaxSize;                     //æ–‡ä»¶æœ€å¤§å¤§å°
+    static int iOutDateDays;                    //æ—¥å¿—è¿‡æœŸæ—¶é—´
 
-    static bool bCoverLog;                      //ÊÇ·ñÃ¿´Î¶¼¸²¸ÇÎÄ¼ş ´ËÖÖÇé¿öÏÂ Ö»Ğ´Ò»¸öÎÄ¼ş ³ÌĞò´ò¿ªÊ±½¨Á¢»òÖØĞ´´ËÎÄ¼ş
-    static bool bFileNameDate;                  //ÊÇ·ñÊ¹ÓÃÈÕÆÚ´´½¨ÎÄ¼şÃû ·ñÔòÊ¹ÓÃÊ±¼ä´´½¨ÎÄ¼şÃû
+    static bool bCoverLog;                      //æ˜¯å¦æ¯æ¬¡éƒ½è¦†ç›–æ–‡ä»¶ æ­¤ç§æƒ…å†µä¸‹ åªå†™ä¸€ä¸ªæ–‡ä»¶ ç¨‹åºæ‰“å¼€æ—¶å»ºç«‹æˆ–é‡å†™æ­¤æ–‡ä»¶
+    static bool bFileNameDate;                  //æ˜¯å¦ä½¿ç”¨æ—¥æœŸåˆ›å»ºæ–‡ä»¶å å¦åˆ™ä½¿ç”¨æ—¶é—´åˆ›å»ºæ–‡ä»¶å
 
-    //»Øµ÷º¯Êı
-    static unordered_map<string, TypeLogNormalCallBack> funNormalCallBack;     //·µ»Ø³£¹æÈÕÖ¾ĞÅÏ¢,×Ö·û´®°üº¬ËùÓĞĞÅÏ¢Ïµ
-    static unordered_map<string, TypeLogSpecCallBack> funSpecCallBack; //·µ»ØÏêÏ¸ÈÕÖ¾ĞÅÏ¢,ÓÃÓÚ×Ô¶¨ÒåÊä³öÈÕÖ¾¼ÇÂ¼
+    //å›è°ƒå‡½æ•°
+    static unordered_map<string, TypeLogNormalCallBack> funNormalCallBack;     //è¿”å›å¸¸è§„æ—¥å¿—ä¿¡æ¯,å­—ç¬¦ä¸²åŒ…å«æ‰€æœ‰ä¿¡æ¯ç³»
+    static unordered_map<string, TypeLogSpecCallBack> funSpecCallBack; //è¿”å›è¯¦ç»†æ—¥å¿—ä¿¡æ¯,ç”¨äºè‡ªå®šä¹‰è¾“å‡ºæ—¥å¿—è®°å½•
     static mutex chkmutex;
 
 };
@@ -103,12 +103,12 @@ mutex EasyLog::Impl::chkmutex;
 std::list<std::string> EasyLog::Impl::CheckOutDatadFiles(const string& rootDir, int days)
 {
     std::list<std::string> filepathlist;
-    static time_t lastcheck = time(0)- 60 * 60 * 25;
+    static time_t lastcheck = time(0) - 60 * 60 * 25;
     time_t curt = time(0);
-    if (curt - lastcheck < 60 * 60 * 24)//Ã¿Ìì¼ì²éÒ»´Î
+    if (curt - lastcheck < 60 * 60 * 24)//æ¯å¤©æ£€æŸ¥ä¸€æ¬¡
         return filepathlist;
 
-    //±éÀúÄ¿Â¼
+    //éå†ç›®å½•
     _finddata_t fileinfo;
     string filters = rootDir + "\\*.*";
     long handle = _findfirst(filters.c_str(), &fileinfo);
@@ -210,7 +210,7 @@ std::string TimeStamp()
 }
 
 // ============================================================
-// date YYYY-MM-DD format Èç2019-01-18
+// date YYYY-MM-DD format å¦‚2019-01-18
 // ============================================================
 std::string DateStamp()
 {
@@ -219,7 +219,7 @@ std::string DateStamp()
     // get the time, and convert it to struct tm format
     time_t a = time(0);
     struct tm b;
-    localtime_s(&b, &a);//VSÖĞÇë×ÔĞĞĞŞ¸Ä
+    localtime_s(&b, &a);//VSä¸­è¯·è‡ªè¡Œä¿®æ”¹
 
     // print the time to the string
     strftime(str, 11, "%Y_%m_%d", &b);
@@ -264,27 +264,27 @@ void EasyLog::WriteLog(LOG_LEVEL level, const char* pLogText, ...)
 
 void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
 {
-    DeleteOutdatedFiles();
-    //lock_guard<mutex> lk(m_pimpl->)l
+    // DeleteOutdatedFiles();
+     //lock_guard<mutex> lk(m_pimpl->)l
     if (level < m_pimpl->eLevel)
-    {//ÈÕÖ¾¼¶±ğ ÉèÖÃ²»´òÓ¡
+    {//æ—¥å¿—çº§åˆ« è®¾ç½®ä¸æ‰“å°
         return;
     }
     if (!m_pimpl->isinited && !Init())
-    {//TODO:´Ë´¦ÌáÊ¾Ò²ĞíĞèÒªĞŞ¸Ä ²»¶Ï´òÓ¡ÈÕÖ¾»áµ¼ÖÂ¿ØÖÆÌ¨È«ÊÇ´ËĞÅÏ¢
+    {//TODO:æ­¤å¤„æç¤ºä¹Ÿè®¸éœ€è¦ä¿®æ”¹ ä¸æ–­æ‰“å°æ—¥å¿—ä¼šå¯¼è‡´æ§åˆ¶å°å…¨æ˜¯æ­¤ä¿¡æ¯
         cout << "Log module init failed, please check reason. ";
         return;
     }
 
-    // Éú³ÉÒ»ĞĞLOG×Ö·û´®
+    // ç”Ÿæˆä¸€è¡ŒLOGå­—ç¬¦ä¸²
     std::stringstream szLogLine;
-    szLogLine << "[" << DateStamp() << "] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText << std::endl;//Èç¹ûÓĞĞèÒªÇë¸Ä³É\r\n
+    szLogLine << "[" << DateStamp() << "] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText << std::endl;//å¦‚æœæœ‰éœ€è¦è¯·æ”¹æˆ\r\n
 
-    /* Êä³öLOG×Ö·û´® - ÎÄ¼ş´ò¿ª²»³É¹¦µÄÇé¿öÏÂ°´ÕÕ±ê×¼Êä³ö */
+    /* è¾“å‡ºLOGå­—ç¬¦ä¸² - æ–‡ä»¶æ‰“å¼€ä¸æˆåŠŸçš„æƒ…å†µä¸‹æŒ‰ç…§æ ‡å‡†è¾“å‡º */
     bool isop = m_pimpl->fileOut.is_open(), chkf = CheckFileSize();
-    if ( isop && Impl::bFileNameDate && !Impl::bCoverLog && chkf)
+    if (isop && Impl::bFileNameDate && !Impl::bCoverLog && chkf)
     {
-        //¼ì²éÎÄ¼ş´óĞ¡ Èç¹û´óÓÚÖ¸¶¨ÎÄ¼ş´óĞ¡ Ôò¸ü»»ÈÕÖ¾ÎÄ¼ş
+        //æ£€æŸ¥æ–‡ä»¶å¤§å° å¦‚æœå¤§äºæŒ‡å®šæ–‡ä»¶å¤§å° åˆ™æ›´æ¢æ—¥å¿—æ–‡ä»¶
         if (m_pimpl->fileSize != -1)
         {
             m_pimpl->fileSize += szLogLine.str().size();
@@ -306,7 +306,7 @@ void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
         }
     }
     else
-    {//ÎÄ¼ş´ò¿ªÊ§°Ü Êä³öµ½¿ØÖÆÌ¨
+    {//æ–‡ä»¶æ‰“å¼€å¤±è´¥ è¾“å‡ºåˆ°æ§åˆ¶å°
         std::cout << szLogLine.str();
     }
 }
@@ -372,7 +372,7 @@ EasyLog::~EasyLog(void)
 
 bool EasyLog::CheckFileSize()
 {
-    //¼ì²éÈÕÖ¾´óĞ¡,Èç¹ûÎÄ¼ş´óĞ¡´óÓÚ10M,Ôò¹Ø±Õµ±Ç°ÎÄ¼ş,²¢ÒÔµ±Ç°Ê±¼äÃûĞÂ½¨ÏÂÒ»¸öÎÄ¼ş
+    //æ£€æŸ¥æ—¥å¿—å¤§å°,å¦‚æœæ–‡ä»¶å¤§å°å¤§äº10M,åˆ™å…³é—­å½“å‰æ–‡ä»¶,å¹¶ä»¥å½“å‰æ—¶é—´åæ–°å»ºä¸‹ä¸€ä¸ªæ–‡ä»¶
     if (m_pimpl->fileSize == -1)
     {
         m_pimpl->fileOut.seekp(0, m_pimpl->fileOut.end);
@@ -380,9 +380,9 @@ bool EasyLog::CheckFileSize()
     }
     if (m_pimpl->fileSize >= m_pimpl->fileMaxSize * 1024 * 1024)
     {
-        //¹Ø±ÕÔ­ÎÄ¼ş
+        //å…³é—­åŸæ–‡ä»¶
         m_pimpl->fileOut.close();
-        //ĞÂ½¨ÎÄ¼şÓÃÓÚÈÕÖ¾Êä³ö
+        //æ–°å»ºæ–‡ä»¶ç”¨äºæ—¥å¿—è¾“å‡º
         string filepath = GenerateFilePath();
         if (!ComfirmFolderExists(filepath))
         {
@@ -446,7 +446,7 @@ std::string EasyLog::GenerateFilePath()
 void EasyLog::SetLogDir(std::string _dir)
 {
     if (_dir != Impl::dir)
-    {//ĞŞ¸ÄÁËÄ¿Â¼,ÔòĞèÒª
+    {//ä¿®æ”¹äº†ç›®å½•,åˆ™éœ€è¦
         m_pimpl->iIndex = 1;
         if (m_pimpl->fileOut.is_open())
         {
@@ -475,43 +475,43 @@ bool EasyLog::ComfirmFolderExists(std::string filepath)
     filep.Replace(_T("\\"), _T("/"));
     {
         CString szPath = filep;
-        CString strDir(szPath);//´æ·ÅÒª´´½¨µÄÄ¿Â¼×Ö·û´®
-        //È·±£ÒÔ'\'½áÎ²ÒÔ´´½¨×îºóÒ»¸öÄ¿Â¼
+        CString strDir(szPath);//å­˜æ”¾è¦åˆ›å»ºçš„ç›®å½•å­—ç¬¦ä¸²
+        //ç¡®ä¿ä»¥'\'ç»“å°¾ä»¥åˆ›å»ºæœ€åä¸€ä¸ªç›®å½•
         if (strDir.GetAt(strDir.GetLength() - 1) != _T('/'))
         {
             strDir.AppendChar(_T('/'));
         }
-        std::vector<CString> vPath;//´æ·ÅÃ¿Ò»²ãÄ¿Â¼×Ö·û´®
-        CString strTemp;//Ò»¸öÁÙÊ±±äÁ¿,´æ·ÅÄ¿Â¼×Ö·û´®
-        bool bSuccess = false;//³É¹¦±êÖ¾
-        //±éÀúÒª´´½¨µÄ×Ö·û´®
+        std::vector<CString> vPath;//å­˜æ”¾æ¯ä¸€å±‚ç›®å½•å­—ç¬¦ä¸²
+        CString strTemp;//ä¸€ä¸ªä¸´æ—¶å˜é‡,å­˜æ”¾ç›®å½•å­—ç¬¦ä¸²
+        bool bSuccess = false;//æˆåŠŸæ ‡å¿—
+        //éå†è¦åˆ›å»ºçš„å­—ç¬¦ä¸²
         for (int i = 0; i < strDir.GetLength(); ++i)
         {
             if (strDir.GetAt(i) != _T('/'))
-            {//Èç¹ûµ±Ç°×Ö·û²»ÊÇ'/'
+            {//å¦‚æœå½“å‰å­—ç¬¦ä¸æ˜¯'/'
                 strTemp.AppendChar(strDir.GetAt(i));
             }
             else
-            {//Èç¹ûµ±Ç°×Ö·ûÊÇ'/'
-                vPath.push_back(strTemp);//½«µ±Ç°²ãµÄ×Ö·û´®Ìí¼Óµ½Êı×éÖĞ
+            {//å¦‚æœå½“å‰å­—ç¬¦æ˜¯'/'
+                vPath.push_back(strTemp);//å°†å½“å‰å±‚çš„å­—ç¬¦ä¸²æ·»åŠ åˆ°æ•°ç»„ä¸­
                 strTemp.AppendChar(_T('/'));
             }
         }
 
-        //±éÀú´æ·ÅÄ¿Â¼µÄÊı×é,´´½¨Ã¿²ãÄ¿Â¼
+        //éå†å­˜æ”¾ç›®å½•çš„æ•°ç»„,åˆ›å»ºæ¯å±‚ç›®å½•
         std::vector<CString>::const_iterator vIter;
         for (vIter = vPath.begin(); vIter != vPath.end(); vIter++)
         {
-            //Èç¹ûCreateDirectoryÖ´ĞĞ³É¹¦,·µ»Øtrue,·ñÔò·µ»Øfalse
+            //å¦‚æœCreateDirectoryæ‰§è¡ŒæˆåŠŸ,è¿”å›true,å¦åˆ™è¿”å›false
             bSuccess = CreateDirectory(*vIter, NULL) ? true : false;
         }
 
         return PathFileExists(filep) == TRUE;
     }
-#else//LINUXÏµÍ³
+#else//LINUXç³»ç»Ÿ
     DIR* dp;
     if (dp = opendir(filepath.c_str()) == NULL || mkdir(filepath.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == -1)
-    {//Ã»ÓĞÔò´´½¨Ä¿Â¼
+    {//æ²¡æœ‰åˆ™åˆ›å»ºç›®å½•
         return false;
     }
     closedir(dp);
@@ -553,4 +553,3 @@ void EasyLog::SetLogLevel(LOG_LEVEL level)
 {
     Impl::eLevel = level;
 }
-

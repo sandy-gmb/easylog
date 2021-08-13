@@ -38,14 +38,14 @@
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
@@ -76,6 +76,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>$(ProjectName)_d</TargetName>
+    <OutDir>..\lib\$(PlatformName)</OutDir>
+    <IntDir>..\build\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -86,6 +88,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <GenerateManifest>false</GenerateManifest>
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>..\lib\$(PlatformName)</OutDir>
+    <IntDir>../build/</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -145,7 +149,9 @@ xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
       <Version>1.0</Version>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\</Command>
+      <Command>xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
+xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
+xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bin</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -167,7 +173,9 @@ xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
       <Version>1.0</Version>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\</Command>
+      <Command>xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
+xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
+xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
