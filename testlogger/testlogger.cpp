@@ -6,11 +6,12 @@
 
 int main()
 {
-    ELOGGER->SetLogLevel(LOG_DEBUG);
+    ELOGGER->SetLogLevel(LOG_TRACE);
     ELOGD("debug");
     ELOGT("trace");
     ELOGE("error");
     ELOGI("info");
+    ELOGGER->WriteLog("TestLogger", LOG_WARN);
 
     std::cout << "Hello World!\n";
 }

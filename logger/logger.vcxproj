@@ -22,34 +22,32 @@
     <ProjectGuid>{5A66219D-C96B-404A-A48E-A0C7159774C8}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>logger</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -104,11 +102,11 @@
       <OutputFile>$(OutDir)/$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /y $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y $(OutDir)$(TargetName).pdb $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y $(OutDir)$(TargetName).pdb $(ProjectDir)..bin\
-xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\</Command>
+      <Command>copy $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).pdb $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).pdb $(ProjectDir)..\bin\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\$(PlatformName)\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -124,10 +122,11 @@ xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\</Command>
       <OutputFile>$(OutDir)/$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /y $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y $(OutDir)$(TargetName).pdb $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
-</Command>
+      <Command>copy $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).pdb $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).pdb $(ProjectDir)..\bin\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\$(PlatformName)\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -149,9 +148,9 @@ xcopy /e /y $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
       <Version>1.0</Version>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bin</Command>
+      <Command>copy $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\$(PlatformName)\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -173,9 +172,9 @@ xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bin</Command>
       <Version>1.0</Version>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y /i $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
-xcopy /e /y /i $(OutDir)$(TargetName).lib $(ProjectDir)..\bin\</Command>
+      <Command>copy $(OutDir)$(TargetName).lib $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bak\$(PlatformName)\
+copy $(OutDir)$(TargetName).dll $(ProjectDir)..\bin\$(PlatformName)\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
