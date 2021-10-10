@@ -47,7 +47,7 @@
 #define EASY_LOG_KEEP_FILE_OPEN             false           //程序是否保持日志文件打开
 #define EASY_LOG_DEFAULT_LOG_LEVEL          LOG_TRACE       //默认日志级别:TRACE
 #define EASY_LOG_DEFAULT_FILE_NAME          "log.txt"       //默认文件名
-#define EASY_LOG_DEFAULT_LINE_BUFF_SIZE     4096            /** 一行的最大缓冲 */
+#define EASY_LOG_DEFAULT_LINE_BUFF_SIZE     9192            /** 一行的最大缓冲 *///影响快捷宏
 
 using namespace std;
 
