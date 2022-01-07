@@ -22,6 +22,7 @@
 #include <atlstr.h>
 #include <tchar.h>
 #include <vector>
+#include <sys/timeb.h>
 #else
 #include <dirent.h>
 #include <unistd.h>
@@ -209,17 +210,29 @@ namespace uuid
 // ============================================================
 // time in 24 hours hh_mm_ss format
 // ============================================================
-std::string TimeStamp()
+std::string TimeStamp(bool bName = false)
 {
-    char str[9];
+    char str[13]={0};
 
-    // get the time, and convert it to struct tm format
-    time_t a = time(0);
     struct tm b;
-    localtime_s(&b, &a);
-
-    // print the time to the string
-    strftime(str, 9, "%H_%M_%S", &b);
+    if(bName)
+    {
+        //low precision time
+        // get the time, and convert it to struct tm format
+        time_t a = time(0);
+        localtime_s(&b, &a);
+        // print the time to the string
+        strftime(str, 9, "%H_%M_%S", &b);
+    }
+    else
+    {
+        //highly precision time
+        struct timeb realt;
+        ftime(&realt);
+        localtime_s(&b, &realt.time);
+        // print the time to the string
+        sprintf_s(str, "%02d:%02d:%02d.%03d", b.tm_hour, b.tm_min, b.tm_sec, realt.millitm);
+    }
 
     return str;
 }
@@ -434,7 +447,7 @@ std::string EasyLog::GenerateFilePath()
         }
         else
         {
-            string t = TimeStamp();
+            string t = TimeStamp(true);
             if (m_pimpl->iIndex != 1)
             {
                 t = m_pimpl->fileNamePrefix;
