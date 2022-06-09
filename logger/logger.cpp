@@ -296,7 +296,6 @@ void EasyLog::WriteLog(LOG_LEVEL level, const char* pLogText, ...)
 void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
 {
     DeleteOutdatedFiles();
-     //lock_guard<mutex> lk(m_pimpl->)l
     if (level < m_pimpl->eLevel)
     {//日志级别 设置不打印
         return;
@@ -311,6 +310,7 @@ void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
     std::stringstream szLogLine;
     szLogLine << "[" << DateStamp() << "] [" << TimeStamp() << "] [" << LogEnumToString(level) << "] " << logText << std::endl;//如果有需要请改成\r\n
 
+    WaitForSingleObject(m_pimpl->fileMutex, INFINITE);
     /* 输出LOG字符串 - 文件打开不成功的情况下按照标准输出 */
     bool isop = m_pimpl->fileOut.is_open(), chkf = CheckFileSize();
     if (isop && Impl::bFileNameDate && !Impl::bCoverLog && chkf)
@@ -340,6 +340,7 @@ void EasyLog::WriteLog(std::string logText, LOG_LEVEL level /*= LOG_ERROR*/)
     {//文件打开失败 输出到控制台
         std::cout << szLogLine.str();
     }
+    ReleaseMutex(m_pimpl->fileMutex);
 }
 
 
@@ -553,9 +554,11 @@ bool EasyLog::ComfirmFolderExists(std::string filepath)
 
 void EasyLog::DeleteOutdatedFiles()
 {
+    WaitForSingleObject(m_pimpl->fileMutex, INFINITE);
     list<string> filelst;
     filelst = m_pimpl->CheckOutDatadFiles(Impl::dir, Impl::iOutDateDays);
     m_pimpl->DeleteOutdatedFiles(filelst);
+    ReleaseMutex(m_pimpl->fileMutex);
 }
 
 bool EasyLog::Init()
